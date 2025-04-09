@@ -1,24 +1,29 @@
 apply plugin: 'com.android.application'
-apply plugin: 'me.tatarka.retrolambda'
+apply plugin: 'maven'
+
+//apply plugin:'com.hoolai.gradle.plugin'
+//apply plugin: 'com.hoolai.roubust.plugin' version '1.0.0'
+
+//apply plugin: 'me.tatarka.retrolambda'
 //apply plugin: 'auto-patch-plugin'
 apply plugin: 'robust'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion '25.0.2'
+    compileSdkVersion 30
+    buildToolsVersion '30.0.2'
     defaultConfig {
         applicationId "com.meituan.robust.sample"
-        minSdkVersion 9
-        targetSdkVersion 25
+        minSdkVersion 23
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
     }
-    lintOptions {
-        checkReleaseBuilds false
-        // Or, if you prefer, you can continue to check for errors in release builds,
-        // but continue the build even when errors are found:
-        abortOnError false
-    }
+//    lintOptions {
+//        checkReleaseBuilds false
+//        // Or, if you prefer, you can continue to check for errors in release builds,
+//        // but continue the build even when errors are found:
+//        abortOnError false
+//    }
 
     signingConfigs {
         meituan {
@@ -31,12 +36,12 @@ android {
     buildTypes {
         release {
 //            minifyEnabled false
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.meituan
         }
         debug {
-            minifyEnabled true
+            minifyEnabled false
 //            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -55,21 +60,28 @@ android {
         exclude 'META-INF/maven/commons-cli/commons-cli/pom.xml'
     }
 }
-configurations {
-    all*.exclude group: 'com.google.guava', module: 'guava'
-}
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
+//configurations {
+//    all*.exclude group: 'com.google.guava', module: 'guava'
+//}
+
+//configurations.all {
+//    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+//}
+
 dependencies {
-    compile 'com.google.code.gson:gson:2.7'
-    compile 'com.squareup.picasso:picasso:2.5.2'
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.squareup.okhttp:okhttp:2.5.0'
-    compile 'com.google.code.gson:gson:2.3.1'
-    compile 'com.android.support:design:25.4.0'
-    compile 'org.javassist:javassist:3.20.0-GA'
-    compile project(path: ':patch')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'junit:junit:4.13.2'
+
+    implementation 'com.android.support:support-compat:28.0.0'
+
+    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.squareup.picasso:picasso:2.5.2'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.squareup.okhttp:okhttp:2.5.0'
+    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.android.support:design:28.0.0'
+    implementation 'org.javassist:javassist:3.27.0-GA'
+
+    implementation project(path: ':patch')
+    implementation project(path: ':autopatchbase')
 }

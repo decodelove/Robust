@@ -1,17 +1,75 @@
-apply plugin: 'groovy'
-compileGroovy {
-    sourceCompatibility = 1.7
-    targetCompatibility = 1.7
-}
-dependencies {
-    compile gradleApi()
-    compile localGroovy()
-    compile 'com.android.tools.build:gradle:2.1.0'
-    compile 'org.javassist:javassist:3.20.0-GA'
-    compile fileTree(dir: "./src/main/libs", include: ['*.jar'])
-    compile project(':autopatchbase')
-//    compile 'com.meituan.robust:autopatchbase:0.4.93'
-    compile 'org.ow2.asm:asm:5.0.1'
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
-apply from: '../gradle_mvn_push.gradle'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.android.tools.build:gradle:4.0.2'
+    implementation 'org.javassist:javassist:3.20.0-GA'
+//    implementation project(':autopatchbase')
+    implementation 'com.hoolai.roubust.base:hoolai-robust-base:1.0.0'
+//    compile 'com.meituan.robust:autopatchbase:0.4.93'
+    implementation 'org.ow2.asm:asm:9.2'
+}
+
+
+group = 'robust.gradle.plugin'
+version = '1.0.0'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'robust'
+            version = project.version
+        }
+    }
+    repositories {
+        maven {
+            name = 'localRepo'
+            url = layout.buildDirectory.dir("repo")
+        }
+    }
+}
+
+/*
+uploadArchives {
+    if (true){
+        repositories {
+           */
+/* pom{}.project {
+                groupId = 'com.hoolai.roubust.plugin'
+                artifactId = 'hoolai-robust-plugin'
+                version = '1.0.0'
+            }
+            mavenLocal()*//*
+
+            //repository(url: uri("/Users/gr/.m2/repository"))
+            mavenDeployer {
+                pom.version = '1.0.0'
+                pom.artifactId = 'hoolai-robust-plugin'
+                pom.groupId = 'com.hoolai.roubust.plugin'
+                repository(url: uri("../repo"))
+            }
+        }
+    }else{
+        repositories.mavenDeployer {
+            //mavenUrl = uri(PROJ_UPLOADE_URL)
+            repository(url: PROJ_UPLOADE_URL) {
+                authentication(userName: PROJ_UPLOADE_USERNAME, password: PROJ_UPLOADE_PASSWORD)
+            }
+            def rbs = rootProject.ext.roubust
+            pom.version = rbs.version
+            pom.artifactId = rbs.name
+            pom.groupId = rbs.groupId
+        }
+    }
+}*/

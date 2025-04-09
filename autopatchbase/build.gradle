@@ -1,4 +1,60 @@
 apply plugin: 'java'
-apply from: '../gradle_mvn_push.gradle'
-sourceCompatibility= 1.7
-targetCompatibility= 1.7
+apply plugin: 'maven-publish'
+//apply from: '../gradle_mvn_push.gradle'
+sourceCompatibility= 1.8
+targetCompatibility= 1.8
+
+group = 'com.hoolai.roubust.base'
+version = '1.0.0'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'hoolai-robust-base'
+            version = project.version
+        }
+    }
+    repositories {
+        maven {
+            name = 'localRepo'
+            url = layout.buildDirectory.dir("repo")
+        }
+    }
+}
+
+
+/*
+uploadArchives {
+    if (true){
+        repositories {
+            */
+/* pom{}.project {
+                 groupId = 'com.hoolai.roubust.plugin'
+                 artifactId = 'hoolai-robust-plugin'
+                 version = '1.0.0'
+             }
+             mavenLocal()*//*
+
+            //repository(url: uri("/Users/gr/.m2/repository"))
+            mavenDeployer {
+                pom.version = '1.0.0'
+                pom.artifactId = 'hoolai-autopatch-base'
+                pom.groupId = 'com.hoolai.autopatch.base'
+                repository(url: uri("/Users/gr/.m2/repository"))
+            }
+        }
+    }else{
+        repositories.mavenDeployer {
+            //mavenUrl = uri(PROJ_UPLOADE_URL)
+            repository(url: PROJ_UPLOADE_URL) {
+                authentication(userName: PROJ_UPLOADE_USERNAME, password: PROJ_UPLOADE_PASSWORD)
+            }
+            def rbs = rootProject.ext.roubust
+            pom.version = rbs.version
+            pom.artifactId = rbs.name
+            pom.groupId = rbs.groupId
+        }
+    }
+}*/

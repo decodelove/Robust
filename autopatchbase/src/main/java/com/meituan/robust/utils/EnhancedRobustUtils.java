@@ -85,7 +85,6 @@ public class EnhancedRobustUtils {
         return null;
     }
 
-
     public static void setFieldValue(String name, Object instance, int value, Class cl) {
         try {
             getReflectField(name, instance, cl).setInt(instance, value);
@@ -95,7 +94,6 @@ public class EnhancedRobustUtils {
                 throw new RuntimeException("setFieldValue int error " + name + "   target   " + instance + "  value  " + value);
             }
         }
-
     }
 
     public static void setFieldValue(String name, Object instance, boolean value, Class cl) {

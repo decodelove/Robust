@@ -27,7 +27,7 @@ class ReadAnnotation {
                 Constants.AddAnnotationClass = box.get(0).getClassPool().get(Constants.ADD_ANNOTATION).toClass();
             }
         }
-        box.forEach {
+        /*box.forEach {
             ctclass ->
                 try {
                     boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
@@ -43,13 +43,34 @@ class ReadAnnotation {
                     logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
                     e.printStackTrace();
                 }
+        }*/
+
+        // 使用并行流处理，提高扫描效率
+        box.parallelStream().forEach { ctclass ->
+            try {
+                logger.info("start read annotation for class " + ctclass.name)
+                boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
+                if (!isNewlyAddClass) {
+                    // 添加同步机制，确保线程安全
+                    synchronized (patchMethodSignureSet) {
+                        patchMethodSignureSet.addAll(scanClassForModifyMethod(ctclass));
+                    }
+                    scanClassForAddMethodAnnotation(ctclass);
+                }
+            } catch (NullPointerException e) {
+                logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
+                e.printStackTrace();
+            } catch (RuntimeException e) {
+                logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
+                e.printStackTrace();
+            }
         }
-        println("new add methods  list is ")
-        JavaUtils.printList(Config.newlyAddedMethodSet.toList())
-        println("new add classes list is ")
-        JavaUtils.printList(Config.newlyAddedClassNameList)
-        println(" patchMethodSignatureSet is printed below ")
-        JavaUtils.printList(patchMethodSignureSet.asList())
+
+        logger.quiet"new add methods  list is $Config.newlyAddedMethodSet.toList() "
+
+        logger.quiet"new add classes list is  $Config.newlyAddedClassNameList.size() "
+
+        logger.quiet" patchMethodSignatureSet is printed below $patchMethodSignureSet.asList() "
         Config.patchMethodSignatureSet.addAll(patchMethodSignureSet);
     }
 
@@ -84,7 +105,21 @@ class ReadAnnotation {
                 isAllMethodsPatch = false;
                 addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
         }
-
+        /*ctclass.declaredMethods.findAll { method ->
+            method.getDeclaredAnnotations().any { annotation ->
+                annotation.annotationType().name == Constants.ModifyAnnotationClass.name
+            }
+        }.each { method ->
+            isAllMethodsPatch = false;
+            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+        }
+        // 修改为
+        ctclass.declaredMethods.findAll { method ->
+            return method.hasAnnotation(Constants.ModifyAnnotationClass);
+        }.each { method ->
+            isAllMethodsPatch = false;
+            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+        }*/
         //do with lamda expression
         ctclass.defrost();
         ctclass.declaredMethods.findAll {

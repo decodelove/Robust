@@ -74,7 +74,6 @@ public class PatchManipulateImp extends PatchManipulate {
      * you can verify your patches here
      */
     @Override
-
     protected boolean verifyPatch(Context context, Patch patch) {
         //do your verification, put the real patch to patch
         //放到app的私有目录

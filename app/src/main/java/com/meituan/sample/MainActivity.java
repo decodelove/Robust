@@ -10,6 +10,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.meituan.robust.PatchExecutor;
+
 /**
  * For users of Robust you may only to use MainActivity or SecondActivity,other classes are used for test.<br>
  * <br>
@@ -100,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runRobust() {
-        new PatchExecutor(getApplicationContext(), new PatchManipulateImp(), new RobustCallBackSample()).start();
+        PatchManipulateImp patchManipulate = new PatchManipulateImp();
+        RobustCallBackSample robustCallBack = new RobustCallBackSample();
+        new PatchExecutor(getApplicationContext(), patchManipulate, robustCallBack).start();
     }
 }
