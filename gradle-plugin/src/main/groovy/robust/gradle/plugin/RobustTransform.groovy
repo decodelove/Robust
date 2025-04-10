@@ -11,6 +11,7 @@ import robust.gradle.plugin.asm.AsmInsertImpl
 import robust.gradle.plugin.javaassist.JavaAssistInsertImpl
 
 import java.util.zip.GZIPOutputStream
+
 /**
  * Created by mivanzhang on 16/11/3.
  *
@@ -39,7 +40,15 @@ class RobustTransform extends Transform implements Plugin<Project> {
     @Override
     void apply(Project target) {
         project = target
-        robust = new XmlSlurper().parse(new File("${project.projectDir}/${Constants.ROBUST_XML}"))
+        // 添加错误处理，防止 XML 解析失败
+        try {
+            robust = new XmlSlurper().parse(new File("${project.projectDir}/${Constants.ROBUST_XML}"))
+        } catch (Exception e) {
+            logger.error("Failed to parse robust.xml: ${e.message}")
+            e.printStackTrace()
+            return
+        }
+        
         logger = project.logger
         initConfig()
         //是否强制插入插入代码，Robust默认在debug模式下是关闭的，开启这个选项为true会在debug下插入代码
@@ -49,25 +58,32 @@ class RobustTransform extends Transform implements Plugin<Project> {
             for (int index = 0; index < taskNames.size(); ++index) {
                 def taskName = taskNames[index]
                 logger.debug "input start parameter task is ${taskName}"
-                //FIXME: assembleRelease下屏蔽Prepare，这里因为还没有执行Task，没法直接通过当前的BuildType来判断，所以直接分析当前的startParameter中的taskname，
-                //另外这里有一个小坑task的名字不能是缩写必须是全称 例如assembleDebug不能是任何形式的缩写输入
                 if (taskName.endsWith("Debug") && taskName.contains("Debug")) {
-//                    logger.warn " Don't register robust transform for debug model !!! task is：${taskName}"
                     isDebugTask = true
                     break;
                 }
             }
             if (!isDebugTask) {
-                project.android.registerTransform(this)
-                project.afterEvaluate(new RobustApkHashAction())
-                logger.quiet "Register robust transform successful !!!"
+                try {
+                    project.android.registerTransform(this)
+                    project.afterEvaluate(new RobustApkHashAction())
+                    logger.quiet "Register robust transform successful !!!"
+                } catch (Exception e) {
+                    logger.error("Failed to register transform: ${e.message}")
+                    e.printStackTrace()
+                }
             }
             if (null != robust.switch.turnOnRobust && !"true".equals(String.valueOf(robust.switch.turnOnRobust))) {
                 return;
             }
         } else {
-            project.android.registerTransform(this)
-            project.afterEvaluate(new RobustApkHashAction())
+            try {
+                project.android.registerTransform(this)
+                project.afterEvaluate(new RobustApkHashAction())
+            } catch (Exception e) {
+                logger.error("Failed to register transform: ${e.message}")
+                e.printStackTrace()
+            }
         }
     }
 
@@ -143,6 +159,25 @@ class RobustTransform extends Transform implements Plugin<Project> {
     }
 
 
+    // 添加新方法以兼容 AGP 4.0.2 的 TransformInvocation API
+    @Override
+    void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
+        // 适配 AGP 4.0.2 的 transform 方法
+        if (transformInvocation == null) {
+            logger.error("TransformInvocation is null, cannot proceed with transform")
+            return
+        }
+        
+        Context context = transformInvocation.getContext()
+        Collection<TransformInput> inputs = transformInvocation.getInputs()
+        Collection<TransformInput> referencedInputs = transformInvocation.getReferencedInputs()
+        TransformOutputProvider outputProvider = transformInvocation.getOutputProvider()
+        boolean isIncremental = transformInvocation.isIncremental()
+        
+        // 调用原有的 transform 方法
+        transform(context, inputs, referencedInputs, outputProvider, isIncremental)
+    }
+
     @Override
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         logger.quiet '================robust start================'
@@ -171,7 +206,7 @@ class RobustTransform extends Transform implements Plugin<Project> {
 
         // 选择插桩策略
         if (useASM) {
-            insertcodeStrategy = new AsmInsertImpl(hotfixPackageList, hotfixMethodList, exceptPackageList, exceptMethodList, isHotfixMethodLevel, isExceptMethodLevel, isForceInsertLambda);
+            insertcodeStrategy = new AsmInsertImpl(hotfixPackageList, hotfixMethodList, exceptPackageList, exceptMethodList, isHotfixMethodLevel, isExceptMethodLevel, isForceInsertLambda)
         } else {
             insertcodeStrategy = new JavaAssistInsertImpl(hotfixPackageList, hotfixMethodList, exceptPackageList, exceptMethodList, isHotfixMethodLevel, isExceptMethodLevel, isForceInsertLambda);
         }
@@ -182,7 +217,7 @@ class RobustTransform extends Transform implements Plugin<Project> {
 
         logger.quiet "===robust print id start==="
         for (String method : insertcodeStrategy.methodMap.keySet()) {
-            int id = insertcodeStrategy.methodMap.get(method);
+            String id = insertcodeStrategy.methodMap.get(method);
             System.out.println("key is   " + method + "  value is    " + id);
         }
         logger.quiet "===robust print id end==="

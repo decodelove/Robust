@@ -3,6 +3,7 @@ package robust.gradle.plugin.asm;
 import com.meituan.robust.ChangeQuickRedirect;
 import com.meituan.robust.Constants;
 
+import org.gradle.api.logging.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -42,6 +43,7 @@ import robust.gradle.plugin.InsertcodeStrategy;
 
 public class AsmInsertImpl extends InsertcodeStrategy {
 
+    static Logger logger;
     // 添加这两个常量来替代 AsmUtils 中的常量
     private static final String CLASS_INITIALIZER = "<clinit>";
     private static final String CONSTRUCTOR = "<init>";
@@ -104,13 +106,12 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             }
             MethodVisitor mv = super.visitMethod(access, name,
                     desc, signature, exceptions);
-
-
+    
             // 判断是否需要插桩
             if (!isQualifiedMethod(access, name, desc, methodInstructionTypeMap)) {
                 return mv;
             }
-
+    
             // 记录方法信息并生成唯一ID
             StringBuilder parameters = new StringBuilder();
             Type[] types = Type.getArgumentTypes(desc);
@@ -121,9 +122,17 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             if (parameters.length() > 0 && parameters.charAt(parameters.length() - 1) == ',') {
                 parameters.deleteCharAt(parameters.length() - 1);
             }
+            
+            String methodSignature = className.replace('/', '.') + "." + name + "(" + parameters.toString() + ")";
+            System.out.println("insert code into " + methodSignature);
+            
+            // 使用修改后的MD5生成方法
+            String methodId = getMD5Hex(methodSignature);
+            System.out.println("methodId:" + methodId + " (MD5: " + methodId + ")");
+            
             //record method number
-            methodMap.put(className.replace('/', '.') + "." + name + "(" + parameters.toString() + ")", insertMethodCount.incrementAndGet());
-            return new MethodBodyInsertor(mv, className, desc, isStatic(access), String.valueOf(insertMethodCount.get()), name, access);
+            methodMap.put(methodSignature, methodId);
+            return new MethodBodyInsertor(mv, className, desc, isStatic(access), methodId, name, access);
         }
 
         private boolean isProtect(int access) {
@@ -211,7 +220,7 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             @Override
             public void visitCode() {
                 //insert code here
-                RobustAsmUtils.createInsertCode(this, className, paramsTypeClass, returnType, isStatic, Integer.valueOf(methodId));
+                RobustAsmUtils.createInsertCode(this, className, paramsTypeClass, returnType, isStatic, methodId);
             }
 
         }
@@ -249,4 +258,26 @@ public class AsmInsertImpl extends InsertcodeStrategy {
         return cw.toByteArray();
     }
 
+    /**
+     * 使用MD5生成方法ID
+     *
+     * @param methodSignature 方法签名
+     * @return 基于MD5的方法ID（取MD5的前8位转为int）
+     */
+    private String getMD5Hex(String methodSignature) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(methodSignature.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString().toUpperCase();
+        } catch (NoSuchAlgorithmException e) {
+            return "MD5计算失败";
+        }
+    }
+
+
 }
+

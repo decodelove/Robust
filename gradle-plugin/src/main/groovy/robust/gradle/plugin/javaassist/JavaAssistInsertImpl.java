@@ -5,6 +5,9 @@ import com.meituan.robust.Constants;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipOutputStream;
@@ -68,7 +71,10 @@ public class JavaAssistInsertImpl extends InsertcodeStrategy {
                         continue;
                     }
                     //here comes the method will be inserted code
-                    methodMap.put(ctBehavior.getLongName(), insertMethodCount.incrementAndGet());
+
+                    String behaviorLongName = ctBehavior.getLongName();
+                    String md5Hex = getMD5Hex(behaviorLongName);
+                    methodMap.put(behaviorLongName, md5Hex);
                     try {
                         if (ctBehavior.getMethodInfo().isMethod()) {
                             CtMethod ctMethod = (CtMethod) ctBehavior;
@@ -262,7 +268,7 @@ public class JavaAssistInsertImpl extends InsertcodeStrategy {
      * @param methodNumber 方法数
      * @return 返回return语句
      */
-    private String getReturnStatement(String type, boolean isStatic, int methodNumber, String parametersClassType, String returnTypeString) {
+    private String getReturnStatement(String type, boolean isStatic, String methodNumber, String parametersClassType, String returnTypeString) {
         switch (type) {
             case Constants.CONSTRUCTOR:
                 return "    com.meituan.robust.PatchProxy.accessDispatchVoid( $args, argThis, changeQuickRedirect, " + isStatic + ", " + methodNumber + "," + parametersClassType + "," + returnTypeString + ");  ";
@@ -312,6 +318,25 @@ public class JavaAssistInsertImpl extends InsertcodeStrategy {
                 return "   return ((java.lang.Character)com.meituan.robust.PatchProxy.accessDispatch( $args, argThis, changeQuickRedirect, " + isStatic + "," + methodNumber + "," + parametersClassType + "," + returnTypeString + "));";
             default:
                 return "   return (" + type + ")com.meituan.robust.PatchProxy.accessDispatch( $args, argThis, changeQuickRedirect, " + isStatic + "," + methodNumber + "," + parametersClassType + "," + returnTypeString + ");";
+        }
+    }
+    /**
+     * 使用MD5生成方法ID
+     *
+     * @param methodSignature 方法签名
+     * @return 基于MD5的方法ID（取MD5的前8位转为int）
+     */
+    private String getMD5Hex(String methodSignature) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(methodSignature.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString().toUpperCase();
+        } catch (NoSuchAlgorithmException e) {
+            return "MD5计算失败";
         }
     }
 }

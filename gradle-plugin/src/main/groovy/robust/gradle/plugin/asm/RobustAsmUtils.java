@@ -24,13 +24,13 @@ public final class RobustAsmUtils {
      * @param returnType
      * @param isStatic
      */
-    public static void createInsertCode(GeneratorAdapter mv, String className, List<Type> args, Type returnType, boolean isStatic, int methodId) {
+    public static void createInsertCode(GeneratorAdapter mv, String className, List<Type> args, Type returnType, boolean isStatic, String methodId) {
         prepareMethodParameters(mv, className, args, returnType, isStatic, methodId);
         //开始调用
         mv.visitMethodInsn(Opcodes.INVOKESTATIC,
                 PROXYCLASSNAME,
                 "proxy",
-                "([Ljava/lang/Object;Ljava/lang/Object;" + REDIRECTCLASSNAME + "ZI[Ljava/lang/Class;Ljava/lang/Class;)Lcom/meituan/robust/PatchProxyResult;",
+                "([Ljava/lang/Object;Ljava/lang/Object;" + REDIRECTCLASSNAME + "ZLjava/lang/String;[Ljava/lang/Class;Ljava/lang/Class;)Lcom/meituan/robust/PatchProxyResult;",
                 false);
 
         int local = mv.newLocal(Type.getType("Lcom/meituan/robust/PatchProxyResult;"));
@@ -70,7 +70,7 @@ public final class RobustAsmUtils {
         mv.visitLabel(l1);
     }
 
-    private static void prepareMethodParameters(GeneratorAdapter mv, String className, List<Type> args, Type returnType, boolean isStatic, int methodId) {
+    private static void prepareMethodParameters(GeneratorAdapter mv, String className, List<Type> args, Type returnType, boolean isStatic, String methodId) {
         //第一个参数：new Object[]{...};,如果方法没有参数直接传入new Object[0]
         if (args.size() == 0) {
             mv.visitInsn(Opcodes.ICONST_0);
@@ -95,7 +95,7 @@ public final class RobustAsmUtils {
         //第四个参数：false,标志是否为static
         mv.visitInsn(isStatic ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
         //第五个参数：
-        mv.push(methodId);
+        mv.visitLdcInsn(methodId);
         //第六个参数：参数class数组
         createClassArray(mv, args);
         //第七个参数：返回值类型class

@@ -45,11 +45,11 @@ public class SecondActivity extends AppCompatActivity implements View.OnClickLis
         printLog("robust", new String[][]{new String[]{"1", "2", "3"}, new String[]{"4", "5", "6"}});
     }
 
-//    @Modify
+    @Modify
     public String getTextInfo() {
         getArray();
-        return "error occur " ;
-//        return "error fixed";
+//        return "error occur " ;
+        return "error fixed";
     }
 
     @Add
