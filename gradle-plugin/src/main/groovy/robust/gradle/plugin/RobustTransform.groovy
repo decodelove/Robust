@@ -42,7 +42,7 @@ class RobustTransform extends Transform implements Plugin<Project> {
         robust = new XmlSlurper().parse(new File("${project.projectDir}/${Constants.ROBUST_XML}"))
         logger = project.logger
         initConfig()
-        //isForceInsert 是true的话，则强制执行插入
+        //是否强制插入插入代码，Robust默认在debug模式下是关闭的，开启这个选项为true会在debug下插入代码
         if (!isForceInsert) {
             def taskNames = project.gradle.startParameter.taskNames
             def isDebugTask = false;
@@ -71,6 +71,10 @@ class RobustTransform extends Transform implements Plugin<Project> {
         }
     }
 
+    /**
+     * 初始化各种列表和配置项
+     * @return
+     */
     def initConfig() {
         hotfixPackageList = new ArrayList<>()
         hotfixMethodList = new ArrayList<>()
@@ -78,7 +82,7 @@ class RobustTransform extends Transform implements Plugin<Project> {
         exceptMethodList = new ArrayList<>()
         isHotfixMethodLevel = false;
         isExceptMethodLevel = false;
-        /*对文件进行解析*/
+        /*从 robust.xml 解析配置*/
         for (name in robust.packname.name) {
             hotfixPackageList.add(name.text());
         }
@@ -98,7 +102,7 @@ class RobustTransform extends Transform implements Plugin<Project> {
 
         if (null != robust.switch.useAsm && "false".equals(String.valueOf(robust.switch.useAsm.text()))) {
             useASM = false;
-        }else {
+        } else {
             //默认使用asm
             useASM = true;
         }
@@ -143,30 +147,37 @@ class RobustTransform extends Transform implements Plugin<Project> {
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         logger.quiet '================robust start================'
         def startTime = System.currentTimeMillis()
+        // 清理输出目录
         outputProvider.deleteAll()
+        // 准备输出 JAR 文件
         File jarFile = outputProvider.getContentLocation("main", getOutputTypes(), getScopes(),
                 Format.JAR);
-        if(!jarFile.getParentFile().exists()){
+        if (!jarFile.getParentFile().exists()) {
             jarFile.getParentFile().mkdirs();
         }
-        if(jarFile.exists()){
+        if (jarFile.exists()) {
             jarFile.delete();
         }
-
+        // 初始化 ClassPool
         ClassPool classPool = new ClassPool()
         project.android.bootClasspath.each {
             classPool.appendClassPath((String) it.absolutePath)
         }
 
+        // 收集所有类
         def box = ConvertUtils.toCtClasses(inputs, classPool)
         def cost = (System.currentTimeMillis() - startTime) / 1000
 //        logger.quiet "check all class cost $cost second, class count: ${box.size()}"
+
+        // 选择插桩策略
         if (useASM) {
             insertcodeStrategy = new AsmInsertImpl(hotfixPackageList, hotfixMethodList, exceptPackageList, exceptMethodList, isHotfixMethodLevel, isExceptMethodLevel, isForceInsertLambda);
         } else {
             insertcodeStrategy = new JavaAssistInsertImpl(hotfixPackageList, hotfixMethodList, exceptPackageList, exceptMethodList, isHotfixMethodLevel, isExceptMethodLevel, isForceInsertLambda);
         }
+        //执行插桩
         insertcodeStrategy.insertCode(box, jarFile);
+        // 保存方法映射表
         writeMap2File(insertcodeStrategy.methodMap, Constants.METHOD_MAP_OUT_PATH)
 
         logger.quiet "===robust print id start==="

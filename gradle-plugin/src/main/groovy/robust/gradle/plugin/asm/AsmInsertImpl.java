@@ -18,6 +18,9 @@ import org.objectweb.asm.tree.MethodNode;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,13 +57,17 @@ public class AsmInsertImpl extends InsertcodeStrategy {
         //get every class in the box ,ready to insert code
         for (CtClass ctClass : box) {
             //change modifier to public ,so all the class in the apk will be public ,you will be able to access it in the patch
+            // 将类修改为 public，确保补丁可以访问
             ctClass.setModifiers(AccessFlag.setPublic(ctClass.getModifiers()));
             if (isNeedInsertClass(ctClass.getName()) && !(ctClass.isInterface() || ctClass.getDeclaredMethods().length < 1)) {
                 //only insert code into specific classes
-                zipFile(transformCode(ctClass.toBytecode(), ctClass.getName().replaceAll("\\.", "/")), outStream, ctClass.getName().replaceAll("\\.", "/") + ".class");
+                String className = ctClass.getName().replaceAll("\\.", "/");
+                // 对需要插桩的类进行字节码转换
+                byte[] transformCode = transformCode(ctClass.toBytecode(), className);
+                zipFile(transformCode, outStream, ctClass.getName().replaceAll("\\.", "/") + ".class");
             } else {
+                // 不需要插桩的类直接写入
                 zipFile(ctClass.toBytecode(), outStream, ctClass.getName().replaceAll("\\.", "/") + ".class");
-
             }
             ctClass.defrost();
         }
@@ -84,21 +91,27 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             this.className = className;
             this.methodInstructionTypeMap = methodInstructionTypeMap;
             //insert the field
+            // 添加 ChangeQuickRedirect 静态字段
             classWriter.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, Constants.INSERT_FIELD_NAME, Type.getDescriptor(ChangeQuickRedirect.class), null, null);
         }
 
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+            // 将 protected 方法改为 public
             if (isProtect(access)) {
                 access = setPublic(access);
             }
             MethodVisitor mv = super.visitMethod(access, name,
                     desc, signature, exceptions);
 
+
+            // 判断是否需要插桩
             if (!isQualifiedMethod(access, name, desc, methodInstructionTypeMap)) {
                 return mv;
             }
+
+            // 记录方法信息并生成唯一ID
             StringBuilder parameters = new StringBuilder();
             Type[] types = Type.getArgumentTypes(desc);
             for (Type type : types) {
@@ -213,9 +226,13 @@ public class AsmInsertImpl extends InsertcodeStrategy {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         ClassReader cr = new ClassReader(b1);
         ClassNode classNode = new ClassNode();
+
+        // 创建方法指令类型映射
         Map<String, Boolean> methodInstructionTypeMap = new HashMap<>();
         cr.accept(classNode, 0);
+
         final List<MethodNode> methods = classNode.methods;
+        // 遍历方法,检查是否包含方法调用指令
         for (MethodNode m : methods) {
             InsnList inList = m.instructions;
             boolean isMethodInvoke = false;
@@ -226,6 +243,7 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             }
             methodInstructionTypeMap.put(m.name + m.desc, isMethodInvoke);
         }
+        // 使用 InsertMethodBodyAdapter 进行代码插入
         InsertMethodBodyAdapter insertMethodBodyAdapter = new InsertMethodBodyAdapter(cw, className, methodInstructionTypeMap);
         cr.accept(insertMethodBodyAdapter, ClassReader.EXPAND_FRAMES);
         return cw.toByteArray();
