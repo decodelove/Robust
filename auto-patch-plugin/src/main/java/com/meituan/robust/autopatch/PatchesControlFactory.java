@@ -12,7 +12,7 @@ import static com.meituan.robust.autopatch.Config.classPool;
 
 /**
  * Created by mivanzhang on 17/2/9.
- *
+ * <p>
  * create patch control classes,which dispatch patch methods
  */
 
@@ -44,7 +44,7 @@ public class PatchesControlFactory {
     private
     static String getAccessDispatchMethodBody(CtClass patchClass, String modifiedClassName) throws NotFoundException {
         StringBuilder accessDispatchMethodBody = new StringBuilder();
-        if(Config.catchReflectException){
+        if (Config.catchReflectException) {
             accessDispatchMethodBody.append("try{");
         }
         if (Constants.isLogging) {
@@ -80,7 +80,7 @@ public class PatchesControlFactory {
             CtClass[] parametertypes = method.getParameterTypes();
             String methodSignure = JavaUtils.getJavaMethodSignure(method).replaceAll(patchClass.getName(), modifiedClassName);
             String methodLongName = modifiedClassName + "." + methodSignure;
-            Integer methodNumber = Config.methodMap.get(methodLongName);
+            String methodNumber = Config.methodMap.get(methodLongName);
             //just Forward methods with methodNumber
             if (methodNumber != null) {
                 accessDispatchMethodBody.append(" if((\"" + methodNumber + "\").equals(methodNo)){\n");
@@ -125,24 +125,24 @@ public class PatchesControlFactory {
                     }
                 }
                 for (int index = 0; index < parametertypes.length; index++) {
-                    if (booleanPrimeType(parametertypes[index].getName())){
+                    if (booleanPrimeType(parametertypes[index].getName())) {
                         accessDispatchMethodBody.append("((" + JavaUtils.getWrapperClass(parametertypes[index].getName()) + ") (fixObj(paramArrayOfObject[" + index + "]))");
                         accessDispatchMethodBody.append(")" + JavaUtils.wrapperToPrime(parametertypes[index].getName()));
                         if (index != parametertypes.length - 1) {
                             accessDispatchMethodBody.append(",");
                         }
                     } else {
-                    accessDispatchMethodBody.append("((" + JavaUtils.getWrapperClass(parametertypes[index].getName()) + ") (paramArrayOfObject[" + index + "])");
-                    accessDispatchMethodBody.append(")" + JavaUtils.wrapperToPrime(parametertypes[index].getName()));
-                    if (index != parametertypes.length - 1) {
-                        accessDispatchMethodBody.append(",");
-                    }
+                        accessDispatchMethodBody.append("((" + JavaUtils.getWrapperClass(parametertypes[index].getName()) + ") (paramArrayOfObject[" + index + "])");
+                        accessDispatchMethodBody.append(")" + JavaUtils.wrapperToPrime(parametertypes[index].getName()));
+                        if (index != parametertypes.length - 1) {
+                            accessDispatchMethodBody.append(",");
+                        }
                     }
                 }
                 accessDispatchMethodBody.append("));}\n");
             }
         }
-        if(Config.catchReflectException){
+        if (Config.catchReflectException) {
             accessDispatchMethodBody.append(" } catch (Throwable e) {");
             accessDispatchMethodBody.append(" e.printStackTrace();}");
         }
@@ -162,7 +162,7 @@ public class PatchesControlFactory {
         for (CtMethod method : patchClass.getDeclaredMethods()) {
             String methodSignure = JavaUtils.getJavaMethodSignure(method).replaceAll(patchClass.getName(), modifiedClassName);
             String methodLongName = modifiedClassName + "." + methodSignure;
-            Integer methodNumber = Config.methodMap.get(methodLongName);
+            String methodNumber = Config.methodMap.get(methodLongName);
             //just Forward methods with methodNumber
             if (methodNumber != null) {
                 // 一前一后的冒号作为匹配锚点，只有一边有的话可能会有多重匹配的bug

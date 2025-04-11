@@ -328,7 +328,6 @@ class ReflectUtils {
             }
 
         } else {
-
             if (!isInStaticMethod) {
                 //在非static method中使用非static method
                 stringBuilder.append(" if(\$0 == this ){");

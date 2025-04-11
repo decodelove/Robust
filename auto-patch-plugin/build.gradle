@@ -1,3 +1,5 @@
+import org.gradle.internal.extensibility.DefaultExtraPropertiesExtension
+
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
 
@@ -16,17 +18,16 @@ dependencies {
 }
 //apply from: '../gradle_mvn_push.gradle'
 
-
-group = 'robust.gradle.plugin'
-version = '1.0.4'
+def ext = rootProject.ext
+def autoplugin = ext.autoplugin
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            groupId = project.group
-            artifactId = 'auto-patch-plugin'
-            version = project.version
+            groupId = autoplugin.groupId
+            artifactId = autoplugin.name
+            version = autoplugin.version
         }
     }
     repositories {

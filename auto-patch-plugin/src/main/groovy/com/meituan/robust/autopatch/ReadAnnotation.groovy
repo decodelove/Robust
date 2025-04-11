@@ -19,36 +19,62 @@ class ReadAnnotation {
     public static void readAnnotation(List<CtClass> box, Logger log) {
         logger = log;
         Set patchMethodSignureSet = new HashSet<String>();
+        
+        // 确保 box 不为空
+        if (box == null || box.isEmpty()) {
+            logger.error("No classes to scan for annotations")
+            return
+        }
+        
+        // 初始化注解类
         synchronized (AutoPatchTransform.class) {
-            if (Constants.ModifyAnnotationClass == null) {
-                Constants.ModifyAnnotationClass = box.get(0).getClassPool().get(Constants.MODIFY_ANNOTATION).toClass();
-            }
-            if (Constants.AddAnnotationClass == null) {
-                Constants.AddAnnotationClass = box.get(0).getClassPool().get(Constants.ADD_ANNOTATION).toClass();
+            try {
+                if (Constants.ModifyAnnotationClass == null) {
+                    logger.info("Initializing ModifyAnnotationClass from ${Constants.MODIFY_ANNOTATION}")
+                    Constants.ModifyAnnotationClass = box.get(0).getClassPool().get(Constants.MODIFY_ANNOTATION).toClass();
+                    logger.info("ModifyAnnotationClass initialized: ${Constants.ModifyAnnotationClass}")
+                }
+                if (Constants.AddAnnotationClass == null) {
+                    logger.info("Initializing AddAnnotationClass from ${Constants.ADD_ANNOTATION}")
+                    Constants.AddAnnotationClass = box.get(0).getClassPool().get(Constants.ADD_ANNOTATION).toClass();
+                    logger.info("AddAnnotationClass initialized: ${Constants.AddAnnotationClass}")
+                }
+            } catch (Exception e) {
+                logger.error("Failed to initialize annotation classes: ${e.message}")
+                e.printStackTrace()
             }
         }
-        /*box.forEach {
-            ctclass ->
-                try {
-                    boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
-                    //newly add class donnot need scann for modify
-                    if (!isNewlyAddClass) {
-                        patchMethodSignureSet.addAll(scanClassForModifyMethod(ctclass));
-                        scanClassForAddMethodAnnotation(ctclass);
-                    }
-                } catch (NullPointerException e) {
-                    logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
-                    e.printStackTrace();
-                } catch (RuntimeException e) {
-                    logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
-                    e.printStackTrace();
+        for (ctclass in box) {
+            try {
+                //这个应该从 robust.xml中的条件进行过滤，目前是写死的
+                if (!ctclass.name.startsWith("com.meituan.sample") || ctclass.name.startsWith('com.meituan.sample.R$')) {
+                    continue
                 }
-        }*/
+                logger.info("start read annotation for class " + ctclass.name)
+                boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
+                logger.info("scanClassForAddClassAnnotation：" + isNewlyAddClass)
+                //newly add class donnot need scann for modify
+                if (!isNewlyAddClass) {
+                    def modifyMethod = scanClassForModifyMethod(ctclass)
+                    logger.info("scanClassForModifyMethod：" + modifyMethod +" modifyMethod.size()" + modifyMethod.size())
+                    if (modifyMethod.size() > 0) {
+                        patchMethodSignureSet.addAll(modifyMethod);
+                    }
+                    //先注掉这个，因为这里会报错
+                    scanClassForAddMethodAnnotation(ctclass);
+                }
+            } catch (NullPointerException e) {
+                logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
+                e.printStackTrace();
+            } catch (RuntimeException e) {
+                logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
+                e.printStackTrace();
+            }
+        }
 
-        // 使用并行流处理，提高扫描效率
+        /*// 使用并行流处理，提高扫描效率
         box.parallelStream().forEach { ctclass ->
             try {
-                logger.info("start read annotation for class " + ctclass.name)
                 boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
                 if (!isNewlyAddClass) {
                     // 添加同步机制，确保线程安全
@@ -64,16 +90,17 @@ class ReadAnnotation {
                 logger.warn("something wrong when readAnnotation, " + e.getMessage() + " cannot find class name " + ctclass.name)
                 e.printStackTrace();
             }
+        }*/
+
+        logger.quiet "new add methods  list is $Config.newlyAddedMethodSet.toList() "
+
+        logger.quiet "new add classes list is  $Config.newlyAddedClassNameList.size() "
+        patchMethodSignureSet.iterator().each {
+            logger.quiet "patchMethodSignatureSet patch method signature is $it"
         }
-
-        logger.quiet"new add methods  list is $Config.newlyAddedMethodSet.toList() "
-
-        logger.quiet"new add classes list is  $Config.newlyAddedClassNameList.size() "
-
-        logger.quiet" patchMethodSignatureSet is printed below $patchMethodSignureSet.asList() "
+        //logger.quiet " patchMethodSignatureSet is printed below $patchMethodSignureSet.toString()"
         Config.patchMethodSignatureSet.addAll(patchMethodSignureSet);
     }
-
     public static boolean scanClassForAddClassAnnotation(CtClass ctclass) {
 
         Add addClassAnootation = ctclass.getAnnotation(Constants.AddAnnotationClass) as Add;
@@ -86,10 +113,11 @@ class ReadAnnotation {
     }
 
     public static void scanClassForAddMethodAnnotation(CtClass ctclass) {
-
+        logger.info("scanClassForAddMethodAnnotation " + ctclass.name);
         ctclass.defrost();
         ctclass.declaredMethods.each { method ->
-            if (null != method.getAnnotation(Constants.AddAnnotationClass)) {
+            def getAnnotation = method.getAnnotation(Constants.AddAnnotationClass)
+            if (null != getAnnotation) {
                 Config.newlyAddedMethodSet.add(method.longName)
             }
         }
@@ -98,30 +126,29 @@ class ReadAnnotation {
     public static Set scanClassForModifyMethod(CtClass ctclass) {
         Set patchMethodSignureSet = new HashSet<String>();
         boolean isAllMethodsPatch = true;
-        ctclass.declaredMethods.findAll {
-            return it.hasAnnotation(Constants.ModifyAnnotationClass);
-        }.each {
-            method ->
-                isAllMethodsPatch = false;
-                addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
-        }
-        /*ctclass.declaredMethods.findAll { method ->
-            method.getDeclaredAnnotations().any { annotation ->
-                annotation.annotationType().name == Constants.ModifyAnnotationClass.name
-            }
-        }.each { method ->
-            isAllMethodsPatch = false;
-            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
-        }
-        // 修改为
-        ctclass.declaredMethods.findAll { method ->
-            return method.hasAnnotation(Constants.ModifyAnnotationClass);
-        }.each { method ->
-            isAllMethodsPatch = false;
-            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
-        }*/
-        //do with lamda expression
+        
+        // 确保类已解冻，可以修改
         ctclass.defrost();
+        
+        // 添加日志，查看类是否有方法
+        logger.info("Scanning class ${ctclass.name} with ${ctclass.declaredMethods.size()} methods")
+        
+        // 修改注解扫描方式，使用更可靠的方法
+        ctclass.declaredMethods.each { method ->
+            try {
+                // 直接获取注解对象
+                Object annotation = method.getAnnotation(Constants.ModifyAnnotationClass)
+                if (annotation != null) {
+                    logger.info("Found @Modify annotation on method: ${method.longName}")
+                    isAllMethodsPatch = false;
+                    addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+                }
+            } catch (Exception e) {
+                logger.warn("Error checking annotation for method ${method.longName}: ${e.message}")
+            }
+        }
+        
+        //do with lamda expression
         ctclass.declaredMethods.findAll {
             return Config.methodMap.get(it.longName) != null;
         }.each { method ->
@@ -129,7 +156,6 @@ class ReadAnnotation {
                 @Override
                 public void edit(MethodCall m) throws CannotCompileException {
                     try {
-
                         if (Constants.LAMBDA_MODIFY.equals(m.method.declaringClass.name)) {
                             isAllMethodsPatch = false;
                             addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
@@ -141,30 +167,41 @@ class ReadAnnotation {
                 }
             });
         }
-        Modify classModifyAnootation = ctclass.getAnnotation(Constants.ModifyAnnotationClass) as Modify;
-        if (classModifyAnootation != null) {
-            if (isAllMethodsPatch) {
-                if (classModifyAnootation.value().length() < 1) {
-                    ctclass.declaredMethods.findAll {
-                        return Config.methodMap.get(it.longName) != null;
-                    }.each { method ->
-                        addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
-                    }
-                } else {
-                    ctclass.getClassPool().get(classModifyAnootation.value()).declaredMethods.findAll {
-                        return Config.methodMap.get(it.longName) != null;
-                    }.each { method ->
-                        addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+        
+        // 检查类级别的注解
+        try {
+            Modify classModifyAnootation = ctclass.getAnnotation(Constants.ModifyAnnotationClass) as Modify;
+            if (classModifyAnootation != null) {
+                logger.info("Found @Modify annotation on class: ${ctclass.name}")
+                if (isAllMethodsPatch) {
+                    if (classModifyAnootation.value().length() < 1) {
+                        ctclass.declaredMethods.findAll {
+                            return Config.methodMap.get(it.longName) != null;
+                        }.each { method ->
+                            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+                        }
+                    } else {
+                        ctclass.getClassPool().get(classModifyAnootation.value()).declaredMethods.findAll {
+                            return Config.methodMap.get(it.longName) != null;
+                        }.each { method ->
+                            addPatchMethodAndModifiedClass(patchMethodSignureSet, method);
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            logger.warn("Error checking class annotation for ${ctclass.name}: ${e.message}")
         }
+        
+        // 输出扫描结果
+        logger.info("Found ${patchMethodSignureSet.size()} methods to patch in class ${ctclass.name}")
+        
         return patchMethodSignureSet;
     }
 
     public static Set addPatchMethodAndModifiedClass(Set patchMethodSignureSet, CtMethod method) {
         if (Config.methodMap.get(method.longName) == null) {
-            print("addPatchMethodAndModifiedClass pint methodmap ");
+            println("addPatchMethodAndModifiedClass pint methodmap ");
             JavaUtils.printMap(Config.methodMap);
             throw new GroovyException("patch method " + method.longName + " haven't insert code by Robust.Cannot patch this method, method.signature  " + method.signature + "  ");
         }

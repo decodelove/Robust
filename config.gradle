@@ -1,0 +1,26 @@
+ext {
+    isLibrary = false
+    isUseLocalLibs = true
+
+    patch = [
+            groupId: 'com.robust.access.open',
+            name   : 'patch',
+            version: '1.0.5.0'
+    ]
+
+    robust = [
+            groupId: 'com.robust.access.trace',
+            name   : 'exCrash',
+            version: '1.0.0.0'
+    ]
+    autoplugin = [
+            groupId: 'robust.gradle.plugin',
+            name   : 'auto-patch-plugin',
+            version: '1.1.8'
+    ]
+
+    dependencies = [
+            autoplugin: "robust.gradle.plugin:auto-patch-plugin:${autoplugin.version}",
+
+    ]
+}

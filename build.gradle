@@ -66,6 +66,7 @@
 //}
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+apply from: 'config.gradle'
 
 buildscript {
     repositories {
@@ -80,7 +81,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:4.0.2'
         classpath 'robust.gradle.plugin:robust:1.0.6'
-        classpath 'robust.gradle.plugin:auto-patch-plugin:1.0.4'
+        classpath 'robust.gradle.plugin:auto-patch-plugin:1.1.8'
     }
 }
 

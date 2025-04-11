@@ -47,7 +47,7 @@ public class Constants {
     public static Class ModifyAnnotationClass = null;
     public static Class AddAnnotationClass = null;
 
-    public final static String[] LIB_NAME_ARRAY = {"baksmali-2.1.2.jar", "smali-2.1.2.jar", "dx.jar"};
+    public final static String[] LIB_NAME_ARRAY = {"baksmali-2.1.2.jar", "smali-2.1.2.jar", "dx.jar", "d8.jar"};
     public static final String PACKNAME_END = ";";
     public final static String PRIMITIVE_TYPE = "ZCBSIJFDV";
     public final static String ARRAY_TYPE = "[";
@@ -106,13 +106,12 @@ public class Constants {
     public static final String METHOD_MAP_OUT_PATH = "/outputs/robust/methodsMap.robust";
     public static final String INTERFACE_NAME = "com.meituan.robust.ChangeQuickRedirect";
     public static final String INSERT_FIELD_NAME = "changeQuickRedirect";
-    public static final List<String> NO_NEED_REFLECT_CLASS = Arrays.asList("android.os.Bundle","android.os.BaseBundle");
+    public static final List<String> NO_NEED_REFLECT_CLASS = Arrays.asList("android.os.Bundle", "android.os.BaseBundle");
 
     //robust apk hash : apk's unique id
     public static final String ROBUST_APK_HASH_FILE_NAME = "robust.apkhash";
     public static final String ASPECTJ_AROUND_CLASS = "org.aspectj.runtime.internal.AroundClosure";
     public static final String PATCH_EXECUTE = "patch execute ,other extension will be ignore ";
-
 
 
 }
