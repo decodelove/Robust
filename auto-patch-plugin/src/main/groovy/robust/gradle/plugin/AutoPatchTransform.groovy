@@ -18,6 +18,7 @@ import org.gradle.api.logging.Logger
 import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
 /**
  * Created by mivanzhang on 16/7/21.
  *
@@ -30,6 +31,8 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
     static String smali2DexCommand;
     private
     static String jar2DexCommand;
+
+    private static String d8Jar2DexCommand;
     public static String ROBUST_DIR;
     Project project
     static Logger logger
@@ -53,10 +56,18 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
         def baksmaliFilePath = "${ROBUST_DIR}${Constants.LIB_NAME_ARRAY[0]}"
         def smaliFilePath = "${ROBUST_DIR}${Constants.LIB_NAME_ARRAY[1]}"
         def dxFilePath = "${ROBUST_DIR}${Constants.LIB_NAME_ARRAY[2]}"
-        Config.robustGenerateDirectory = "${project.buildDir}" + File.separator + "$Constants.ROBUST_GENERATE_DIRECTORY" + File.separator;
+        def d8FilePath = "${ROBUST_DIR}${Constants.LIB_NAME_ARRAY[3]}"
+        def androidFilePath = "${ROBUST_DIR}${Constants.LIB_NAME_ARRAY[4]}"
+
+        def robustDirFilPath = "${project.buildDir}" + File.separator + "$Constants.ROBUST_GENERATE_DIRECTORY" + File.separator;
+        Config.robustGenerateDirectory = "${robustDirFilPath}";
+
+        def meituanJarFilePath = "${Config.robustGenerateDirectory}" + Constants.ZIP_FILE_NAME;
         dex2SmaliCommand = "  java -jar ${baksmaliFilePath} -o classout" + File.separator + "  $Constants.CLASSES_DEX_NAME";
         smali2DexCommand = "   java -jar ${smaliFilePath} classout" + File.separator + " -o " + Constants.PATACH_DEX_NAME;
-        jar2DexCommand = "   java -jar ${dxFilePath} --dex --output=$Constants.CLASSES_DEX_NAME  " + $Config.robustGenerateDirectory + Constants.ZIP_FILE_NAME;
+        jar2DexCommand = "   java -jar ${dxFilePath} --dex --output=" + "$Constants.CLASSES_DEX_NAME  " + "${meituanJarFilePath}";
+        d8Jar2DexCommand = "java -cp ${d8FilePath} com.android.tools.r8.D8 --lib ${androidFilePath} --output ${robustDirFilPath} ${meituanJarFilePath}"
+
         ReadXML.readXMl(project.projectDir.path);
         def robustMapFilePath = project.projectDir.path + Constants.METHOD_MAP_PATH;
         logger.quiet "robustMapFilePath: ${robustMapFilePath}"
@@ -171,7 +182,7 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
         generatPatch(box, patchPath);
 
         zipPatchClassesFile()
-        executeCommand(jar2DexCommand)
+        executeCommand(d8Jar2DexCommand)
         executeCommand(dex2SmaliCommand)
         SmaliTool.getInstance().dealObscureInSmali();
         executeCommand(smali2DexCommand)
@@ -297,16 +308,17 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
 
             if (stdout.length() > 0) {
                 logger.quiet commond + " inputStream output: " + stdout.toString()
-            }
-
-            if (stderr.length() > 0) {
                 logger.error commond + " errorStream output: " + stderr.toString()
-                throw new RuntimeException("execute command " + commond + " error: " + stderr.toString())
             }
 
-            if (output.exitValue() != 0) {
-                throw new RuntimeException("execute command " + commond + " failed with exit code " + output.exitValue())
-            }
+            /* if (stderr.length() > 0) {
+                 logger.error commond + " errorStream output: " + stderr.toString()
+                 throw new RuntimeException("execute command " + commond + " error: " + stderr.toString())
+             }
+
+             if (output.exitValue() != 0) {
+                 throw new RuntimeException("execute command " + commond + " failed with exit code " + output.exitValue())
+             }*/
         } catch (Exception e) {
             logger.error("Command execution failed: " + e.message)
             throw e
