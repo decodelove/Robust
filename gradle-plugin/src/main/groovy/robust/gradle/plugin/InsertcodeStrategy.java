@@ -30,16 +30,20 @@ public abstract class InsertcodeStrategy {
     //methods list  do not need to insert code 不需要插桩的方法列表
     protected List<String> exceptMethodList = new ArrayList<>();
     //a switch control whether need to filter method in hotfixMethodList, if false ,hotfixMethodList will be ignored
+//    开关控制是否需要在hotfixmethodlist中过滤方法，如果是错误的，则将忽略hotfixmethodlist
     protected boolean isHotfixMethodLevel = false;
 
     //a switch control whether need to filter method in exceptMethodList, if false ,exceptMethodList will be ignored
+//    开关控件是否需要在除词列表中过滤方法，如果是错误的，则忽略除词列表。
     protected boolean isExceptMethodLevel = false;
 
     //a switch control whether need to insert code into lambda function
+    //开关控制是否需要将代码插入lambda函数
     protected boolean isForceInsertLambda = false;
 
     protected AtomicInteger insertMethodCount = new AtomicInteger(0);
     //record every method with unique method number, use LinkedHashMap to keep order for printing
+    //记录具有唯一方法编号的每种方法，使用linkedhashmap保留订单
     public HashMap<String, String> methodMap = new LinkedHashMap<>();
 
     public InsertcodeStrategy(List<String> hotfixPackageList, List<String> hotfixMethodList, List<String> exceptPackageList, List<String> exceptMethodList, boolean isHotfixMethodLevel, boolean isExceptMethodLevel, boolean isForceInsertLambda) {

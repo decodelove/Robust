@@ -61,6 +61,7 @@ public class AsmInsertImpl extends InsertcodeStrategy {
             //change modifier to public ,so all the class in the apk will be public ,you will be able to access it in the patch
             // 将类修改为 public，确保补丁可以访问
             ctClass.setModifiers(AccessFlag.setPublic(ctClass.getModifiers()));
+            // 判断当前类是否需要插桩isNeedInsertClass(ctClass.getName()),另外接口不需要插桩以及没有方法的类也不需要插桩
             if (isNeedInsertClass(ctClass.getName()) && !(ctClass.isInterface() || ctClass.getDeclaredMethods().length < 1)) {
                 //only insert code into specific classes
                 String className = ctClass.getName().replaceAll("\\.", "/");
