@@ -1,13 +1,12 @@
 apply plugin: 'com.android.library'
-project.archivesBaseName = 'robust'
+apply plugin: 'maven-publish'
+
 android {
     compileSdkVersion 30
     buildToolsVersion '30.0.2'
     defaultConfig {
-        minSdkVersion 23
+        minSdkVersion 21
         targetSdkVersion 30
-        versionCode 1
-        versionName '1.0'
     }
     buildTypes {
         release {
@@ -26,12 +25,36 @@ android {
         exclude 'META-INF/maven/commons-cli/commons-cli/pom.xml'
     }
 }
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
+
 dependencies {
-//    compile 'com.meituan.robust:autopatchbase:' + VERSION_NAME
-    implementation project(':autopatchbase')
+    api project(':autopatchbase')
+//    implementation 'com.meituan.robust:robust-base:1.0.0'
 }
 
-//apply from: '../gradle_mvn_push.gradle'
+group = 'com.meituan.robust.patch'
+version = '1.0.0'
+// 使用 afterEvaluate 延迟 publishing 配置
+afterEvaluate {
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                // 从 release 组件发布
+                from components.release
+                groupId = project.group
+                artifactId = 'robust-patch' // 建议使用项目名称或更具体的名称
+                version = project.version
+
+                // (可选) 如果需要包含源码和 Javadoc
+                // artifact sourceJar
+                // artifact javadocJar
+            }
+        }
+        /*repositories {
+            maven {
+                name = 'localRepo'
+                // 使用 layout.buildDirectory 确保路径正确
+                url = layout.buildDirectory.dir("repo")
+            }
+        }*/
+    }
+}

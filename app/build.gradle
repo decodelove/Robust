@@ -1,10 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'maven'
 
-//apply plugin:'com.hoolai.gradle.plugin'
-//apply plugin: 'com.hoolai.roubust.plugin' version '1.0.0'
-
-//apply plugin: 'me.tatarka.retrolambda'
 apply plugin: 'auto-patch-plugin'
 apply plugin: 'robust'
 
@@ -60,13 +56,6 @@ android {
         exclude 'META-INF/maven/commons-cli/commons-cli/pom.xml'
     }
 }
-//configurations {
-//    all*.exclude group: 'com.google.guava', module: 'guava'
-//}
-
-//configurations.all {
-//    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-//}
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -82,6 +71,7 @@ dependencies {
     implementation 'com.android.support:design:28.0.0'
     implementation 'org.javassist:javassist:3.27.0-GA'
 
-    implementation project(path: ':patch')
-    implementation project(path: ':autopatchbase')
+//    implementation project(path: ':patch')
+//    implementation project(path: ':autopatchbase')
+    implementation 'com.meituan.robust.patch:robust-patch:1.0.0'
 }

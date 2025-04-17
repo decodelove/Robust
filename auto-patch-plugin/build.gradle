@@ -13,8 +13,7 @@ dependencies {
     implementation 'org.javassist:javassist:3.27.0-GA'
 //    compile 'com.meituan.robust:autopatchbase:' + VERSION_NAME
 //    implementation project(':autopatchbase')
-
-    implementation 'com.hoolai.roubust.base:hoolai-robust-base:1.0.0'
+    implementation 'com.meituan.robust:robust-base:1.0.0'
 }
 //apply from: '../gradle_mvn_push.gradle'
 
