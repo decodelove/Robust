@@ -41,6 +41,7 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
     void apply(Project target) {
         this.project = target
         logger = project.logger
+        initConfig();
         project.android.registerTransform(this)
     }
 
@@ -114,7 +115,6 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
     void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs, TransformOutputProvider outputProvider, boolean isIncremental) throws IOException, TransformException, InterruptedException {
         logger.quiet '================autoPatch start================'
         def startTime = System.currentTimeMillis()
-        initConfig();
         copyJarToRobust()
         outputProvider.deleteAll()
         def outDir = outputProvider.getContentLocation("main", getInputTypes(), getScopes(), Format.DIRECTORY)
@@ -174,11 +174,16 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
         String patchPath = buildDir.getAbsolutePath() + File.separator + Constants.ROBUST_GENERATE_DIRECTORY + File.separator;
         clearPatchPath(patchPath);
         new File(patchPath).mkdirs();
+
+        //扫描所有注解的类
         ReadAnnotation.readAnnotation(box, logger);
+
+        //如果不使用proguard,则不需要mapping文件
         if (Config.supportProGuard) {
             ReadMapping.getInstance().initMappingInfo();
         }
 
+        //生成补丁类
         generatPatch(box, patchPath);
 
         zipPatchClassesFile()
@@ -224,16 +229,26 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
         }
     }
 
+    /**
+     * 生成补丁类文件
+     * @param box robust 需要补丁的类列表
+     * @param patchPath robust 文件夹路径
+     * @return
+     */
     def generatPatch(List<CtClass> box, String patchPath) {
         logger.quiet "start generate patch class"
+        //patchPackname包名下的所有类制作成补丁类判断，正常情况下 false
         if (!Config.isManual) {
             if (Config.patchMethodSignatureSet.size() < 1) {
                 throw new RuntimeException(" patch method is empty ,please check your Modify annotation or use RobustModify.modify() to mark modified methods")
             }
             Config.methodNeedPatchSet.addAll(Config.patchMethodSignatureSet)
+            //处理内联类
             InlineClassFactory.dealInLineClass(patchPath, Config.newlyAddedClassNameList)
+
+            //处理所有要修改的方法中调用 super 类的方法
             initSuperMethodInClass(Config.modifiedClassNameList);
-            //auto generate all class
+            //auto generate all patch class
             for (String fullClassName : Config.modifiedClassNameList) {
                 CtClass ctClass = Config.classPool.get(fullClassName)
                 CtClass patchClass = PatchesFactory.createPatch(patchPath, ctClass, false, NameManger.getInstance().getPatchName(ctClass.name), Config.patchMethodSignatureSet)
@@ -241,6 +256,7 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
                 patchClass.defrost();
                 createControlClass(patchPath, ctClass)
             }
+            //创建补丁管理类 PatchedClassInfo
             createPatchesInfoClass(patchPath);
             if (Config.methodNeedPatchSet.size() > 0) {
                 logger.quiet("methodNeedPatchSet type: ${Config.methodNeedPatchSet.getClass().name}")
@@ -326,6 +342,13 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
     }
 
 
+    /**
+     * 主要用于处理类中调用父类方法（super方法）的情况。
+     * 遍历所有被修改的类，查找其中的super方法调用，并将这些方法添加到invokeSuperMethodMap中，
+     * 以便后续生成补丁类时使用。
+     * @param modifiedClassNameList
+     * @param originClassList
+     */
     def initSuperMethodInClass(List originClassList) {
         CtClass modifiedCtClass;
         for (String modifiedFullClassName : originClassList) {

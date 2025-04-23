@@ -15,7 +15,7 @@ class PatchesAssistFactory {
             if (modifiedClass.getSuperclass() != null)
                 assistClass.setSuperclass(modifiedClass.getSuperclass())
         }
-        if(assistClass.isFrozen()){
+        if (assistClass.isFrozen()) {
             assistClass.defrost();
         }
         StringBuilder staticMethodBuidler = new StringBuilder();

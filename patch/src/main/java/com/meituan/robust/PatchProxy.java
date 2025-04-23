@@ -37,9 +37,21 @@ public class PatchProxy {
      * 这样会带来一系列的不可知问题。
      * 封装之后能保证这两个方法读取到的ChangeQuickRedirect是同一份。
      */
+    /**
+     *
+     * @param paramsArray   原方法的参数列表
+     * @param current 当前对象的引用，即this对象，如果是static方法，值为null
+     * @param changeQuickRedirect 补丁的ChangeQuickRedirect对象
+     * @param isStatic 是否是静态方法，编译的时候默认会给出当前方法是否是静态方法的标志位，如果是静态方法，则isStatic为true
+     * @param methodNumber 方法的唯一编号
+     * @param paramsClassTypes 方法参数类型列表
+     * @param returnType 方法的返回值类型
+     * @return PatchProxyResult
+     */
     public static PatchProxyResult proxy(Object[] paramsArray, Object current, ChangeQuickRedirect changeQuickRedirect, boolean isStatic, String methodNumber, Class[] paramsClassTypes, Class returnType) {
         PatchProxyResult patchProxyResult = new PatchProxyResult();
-        if (PatchProxy.isSupport(paramsArray, current, changeQuickRedirect, isStatic, methodNumber, paramsClassTypes, returnType)) {
+        boolean support = PatchProxy.isSupport(paramsArray, current, changeQuickRedirect, isStatic, methodNumber, paramsClassTypes, returnType);
+        if (support) {
             patchProxyResult.isSupported = true;
             patchProxyResult.result = PatchProxy.accessDispatch(paramsArray, current, changeQuickRedirect, isStatic, methodNumber, paramsClassTypes, returnType);
         }
@@ -61,10 +73,18 @@ public class PatchProxy {
             }
             return false;
         }
+
+        /**
+         * 获取类方法名，格式为：类名:方法名:是否静态方法:方法编号
+         */
         String classMethod = getClassMethod(isStatic, methodNumber);
         if (TextUtils.isEmpty(classMethod)) {
             return false;
         }
+        /**
+         * 根据是否是静态方法来获取 objects,非静态方法比静态方法多一个参数，即this对象的引用
+         * 静态方法调用不需要 this 实例
+         */
         Object[] objects = getObjects(paramsArray, current, isStatic);
         try {
             return changeQuickRedirect.isSupport(classMethod, objects);

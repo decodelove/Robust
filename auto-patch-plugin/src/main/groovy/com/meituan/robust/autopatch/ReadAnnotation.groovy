@@ -46,10 +46,6 @@ class ReadAnnotation {
         }
         for (ctclass in box) {
             try {
-                //这个应该从 robust.xml中的条件进行过滤，目前是写死的
-                if (!ctclass.name.startsWith("com.meituan.sample") || ctclass.name.startsWith('com.meituan.sample.R$')) {
-                    continue
-                }
                 logger.info("start read annotation for class " + ctclass.name)
                 boolean isNewlyAddClass = scanClassForAddClassAnnotation(ctclass);
                 logger.info("scanClassForAddClassAnnotation：" + isNewlyAddClass)
@@ -95,6 +91,7 @@ class ReadAnnotation {
         logger.quiet "new add methods  list is $Config.newlyAddedMethodSet.toList() "
 
         logger.quiet "new add classes list is  $Config.newlyAddedClassNameList.size() "
+
         patchMethodSignureSet.iterator().each {
             logger.quiet "patchMethodSignatureSet patch method signature is $it"
         }

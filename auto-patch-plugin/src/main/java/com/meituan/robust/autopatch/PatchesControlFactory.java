@@ -23,10 +23,16 @@ public class PatchesControlFactory {
 
     }
 
+    /*
+     * create PatchTemplate class
+     */
     private CtClass createControlClass(CtClass modifiedClass) throws Exception {
-        CtClass patchClass = classPool.get(NameManger.getInstance().getPatchName(modifiedClass.getName()));
+        String className = modifiedClass.getName();
+        CtClass patchClass = classPool.get(NameManger.getInstance().getPatchName(className));
         patchClass.defrost();
-        CtClass controlClass = classPool.getAndRename(Constants.PATCH_TEMPLATE_FULL_NAME, NameManger.getInstance().getPatchControlName(modifiedClass.getSimpleName()));
+        String patchControlName = NameManger.getInstance().getPatchControlName(modifiedClass.getSimpleName());
+        System.out.println("patchControlName is " + patchControlName);
+        CtClass controlClass = classPool.getAndRename(Constants.PATCH_TEMPLATE_FULL_NAME, patchControlName);
         StringBuilder getRealParameterMethodBody = new StringBuilder();
         getRealParameterMethodBody.append("public Object getRealParameter(Object parameter) {");
         getRealParameterMethodBody.append("if(parameter instanceof " + modifiedClass.getName() + "){");
@@ -37,7 +43,10 @@ public class PatchesControlFactory {
         controlClass.addMethod(CtMethod.make(getRealParameterMethodBody.toString(), controlClass));
         controlClass.getDeclaredMethod("accessDispatch").insertBefore(getAccessDispatchMethodBody(patchClass, modifiedClass.getName()));
         controlClass.getDeclaredMethod("isSupport").insertBefore(getIsSupportMethodBody(patchClass, modifiedClass.getName()));
-        controlClass.defrost();
+        if (controlClass.isFrozen()) {
+            System.out.println("controlClass is frozen. className" + className);
+            controlClass.defrost();
+        }
         return controlClass;
     }
 

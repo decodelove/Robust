@@ -125,10 +125,13 @@ public class PatchExecutor extends Thread {
             //手写的补丁有时候会返回一个空list
             return true;
         }
-
+        // 获取应用的基础 ClassLoader
+        ClassLoader baseClassLoader = PatchExecutor.class.getClassLoader();
         boolean isClassNotFoundException = false;
         for (PatchedClassInfo patchedClassInfo : patchedClasses) {
+            //获取原始要修复的类的名称
             String patchedClassName = patchedClassInfo.patchedClassName;
+            //获取补丁类的名称
             String patchClassName = patchedClassInfo.patchClassName;
             if (TextUtils.isEmpty(patchedClassName) || TextUtils.isEmpty(patchClassName)) {
                 robustCallBack.logNotify("patchedClasses or patchClassName is empty, patch info:" + "id = " + patch.getName() + ",md5 = " + patch.getMd5(), "class:PatchExecutor method:patch line:131");
@@ -137,7 +140,8 @@ public class PatchExecutor extends Thread {
             Log.d("robust", "current path:" + patchedClassName);
             try {
                 try {
-                    sourceClass = classLoader.loadClass(patchedClassName.trim());
+                    //获取原始要修复的类的名称class类对象
+                    sourceClass = baseClassLoader.loadClass(patchedClassName.trim());
                 } catch (ClassNotFoundException e) {
                     isClassNotFoundException = true;
 //                    robustCallBack.exceptionNotify(e, "class:PatchExecutor method:patch line:258");
@@ -163,6 +167,7 @@ public class PatchExecutor extends Thread {
                     patchClass = classLoader.loadClass(patchClassName);
                     Object patchObject = patchClass.newInstance();
                     changeQuickRedirectField.setAccessible(true);
+                    //设置补丁类的对象到原始类的ChangeQuickRedirect字段中
                     changeQuickRedirectField.set(null, patchObject);
                     Log.d("robust", "changeQuickRedirectField set success " + patchClassName);
                 } catch (Throwable t) {

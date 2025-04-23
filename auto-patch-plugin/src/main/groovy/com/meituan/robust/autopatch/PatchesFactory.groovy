@@ -51,6 +51,7 @@ class PatchesFactory {
             }
         }
 
+        //获取最终需要生成补丁的类方法，如果为空则抛出异常
         CtClass temPatchClass = cloneClass(modifiedClass, patchName, methodNoNeedPatchList);
         if (temPatchClass.getDeclaredMethods().length == 0) {
             printList(patchMethodSignureSet.toList());
@@ -74,8 +75,7 @@ class PatchesFactory {
             //  shit !!too many situations need take into  consideration
             //   methods has methodid   and in  patchMethodSignatureSet
             if (!Config.addedSuperMethodList.contains(method) && reaLParameterMethod != method && !method.getName().startsWith(Constants.ROBUST_PUBLIC_SUFFIX)) {
-                method.instrument(
-                        new ExprEditor() {
+                method.instrument(new ExprEditor() {
                             public void edit(FieldAccess f) throws CannotCompileException {
                                 if (Config.newlyAddedClassNameList.contains(f.getClassName())) {
                                     return;

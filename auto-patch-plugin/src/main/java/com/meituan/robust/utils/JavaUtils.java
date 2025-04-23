@@ -235,6 +235,12 @@ public class JavaUtils {
         return className.substring(0, index).equals(modifedClass.getName());
     }
 
+    /**
+     * add patch class constructor
+     * @param patchClass
+     * @param sourceClass
+     * @return
+     */
     public static CtClass addPatchConstruct(CtClass patchClass, CtClass sourceClass) {
         try {
             CtField originField = new CtField(sourceClass, ORIGINCLASS, patchClass);

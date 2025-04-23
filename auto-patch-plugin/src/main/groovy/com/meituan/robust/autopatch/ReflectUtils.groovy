@@ -45,7 +45,9 @@ class ReflectUtils {
                     String className = libClass.getName();
                     if (className.endsWith(SdkConstants.DOT_CLASS)) {
                         className = className.substring(0, className.length() - SdkConstants.DOT_CLASS.length()).replaceAll('/', '.')
-                        classNames.add(className)
+                        if (!className.startsWith(Config.patchPackageName) && !className.contains('R$') && !className.contains('R2$') && !className.contains('BuildConfig')) {
+                            classNames.add(className)
+                        }
                     }
                 }
             }
@@ -301,7 +303,8 @@ class ReflectUtils {
 //
 //            }
 //        } else {
-        //这里面需要注意在static method中 使用static method和非static method 和在非static method中 使用static method和非static method的四种情况
+        //这里面需要注意在static method中 使用static method和非static method 和
+        // 在非static method中 使用static method和非static method的四种情况
 //            stringBuilder.append("java.lang.Object instance;");
         stringBuilder.append(methodCall.method.declaringClass.name + " instance;");
         if (isStatic(methodCall.method.modifiers)) {
@@ -355,7 +358,7 @@ class ReflectUtils {
         }
 //        }
         stringBuilder.append("}");
-//        println("getMethodCallString  " + stringBuilder.toString())
+        println("getMethodCallString  " + stringBuilder.toString())
         return stringBuilder.toString();
     }
 

@@ -19,9 +19,13 @@ public class PatchesInfoFactory {
     private static PatchesInfoFactory patchesInfoFactory = new PatchesInfoFactory();
 
     private PatchesInfoFactory() {
-
+        
     }
 
+    /*
+     * create PatchesInfoImpl class
+     * 
+     */
     private CtClass createPatchesInfoClass() {
         try {
             CtClass ctPatchesInfoImpl = classPool.makeClass(Config.patchPackageName + ".PatchesInfoImpl");
