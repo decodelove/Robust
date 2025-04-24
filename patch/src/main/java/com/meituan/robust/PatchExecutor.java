@@ -18,6 +18,7 @@ public class PatchExecutor extends Thread {
     protected Context context;
     protected PatchManipulate patchManipulate;
     protected RobustCallBack robustCallBack;
+    private String TAG = "robust";
 
     public PatchExecutor(Context context, PatchManipulate patchManipulate, RobustCallBack robustCallBack) {
         this.context = context.getApplicationContext();
@@ -91,9 +92,16 @@ public class PatchExecutor extends Thread {
         ClassLoader classLoader = null;
 
         try {
-            File dexOutputDir = getPatchCacheDirPath(context, patch.getName() + patch.getMd5());
-            classLoader = new DexClassLoader(patch.getTempPath(), dexOutputDir.getAbsolutePath(),
-                    null, PatchExecutor.class.getClassLoader());
+            File dexOutputDir = getPatchCacheDirPath(context, patch.getMd5());
+
+            String tempPath = patch.getTempPath();
+            Log.i(TAG, "patch Patch.jar Path:" + tempPath);
+            String absolutePath = dexOutputDir.getAbsolutePath();
+            Log.i(TAG, "patch dexOutputDir:" + absolutePath);
+            ClassLoader baseClassLoader = PatchExecutor.class.getClassLoader();
+            Log.i(TAG, "patch baseClassLoader:" + baseClassLoader.getClass().getName());
+
+            classLoader = new DexClassLoader(tempPath, absolutePath, null, baseClassLoader);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -126,7 +134,6 @@ public class PatchExecutor extends Thread {
             return true;
         }
         // 获取应用的基础 ClassLoader
-        ClassLoader baseClassLoader = PatchExecutor.class.getClassLoader();
         boolean isClassNotFoundException = false;
         for (PatchedClassInfo patchedClassInfo : patchedClasses) {
             //获取原始要修复的类的名称
@@ -141,7 +148,7 @@ public class PatchExecutor extends Thread {
             try {
                 try {
                     //获取原始要修复的类的名称class类对象
-                    sourceClass = baseClassLoader.loadClass(patchedClassName.trim());
+                    sourceClass = classLoader.loadClass(patchedClassName.trim());
                 } catch (ClassNotFoundException e) {
                     isClassNotFoundException = true;
 //                    robustCallBack.exceptionNotify(e, "class:PatchExecutor method:patch line:258");

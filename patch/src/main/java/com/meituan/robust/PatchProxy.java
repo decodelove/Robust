@@ -155,6 +155,13 @@ public class PatchProxy {
         return objects;
     }
 
+    /**
+     * 获取类方法名，格式为：类名:方法名:是否静态方法:方法编号
+     * 这里真正需要的是方法签名 id，在 isSupport调用时和原始方法签名串进行判断，类名和方法名不需要也行
+     * @param isStatic
+     * @param methodNumber
+     * @return
+     */
     private static String getClassMethod(boolean isStatic, String methodNumber) {
         String classMethod = "";
         try {

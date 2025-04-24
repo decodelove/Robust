@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'maven'
 
-apply plugin: 'auto-patch-plugin'
+//apply plugin: 'auto-patch-plugin'
 apply plugin: 'robust'
 
 android {
@@ -21,6 +21,10 @@ android {
 //        abortOnError false
 //    }
 
+    aaptOptions {
+        noCompress 'arsc'  // 确保 resources.arsc 不被压缩
+    }
+
     signingConfigs {
         meituan {
             storeFile file("keystore.jks")
@@ -38,7 +42,6 @@ android {
         }
         debug {
             minifyEnabled false
-//            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

@@ -33,6 +33,11 @@ public class PatchesControlFactory {
         String patchControlName = NameManger.getInstance().getPatchControlName(modifiedClass.getSimpleName());
         System.out.println("patchControlName is " + patchControlName);
         CtClass controlClass = classPool.getAndRename(Constants.PATCH_TEMPLATE_FULL_NAME, patchControlName);
+        // Check and defrost the class immediately after getting it, before any modifications.
+        if (controlClass.isFrozen()) {
+            System.out.println("controlClass was frozen, defrosting. className: " + className);
+            controlClass.defrost();
+        }
         StringBuilder getRealParameterMethodBody = new StringBuilder();
         getRealParameterMethodBody.append("public Object getRealParameter(Object parameter) {");
         getRealParameterMethodBody.append("if(parameter instanceof " + modifiedClass.getName() + "){");
@@ -43,10 +48,11 @@ public class PatchesControlFactory {
         controlClass.addMethod(CtMethod.make(getRealParameterMethodBody.toString(), controlClass));
         controlClass.getDeclaredMethod("accessDispatch").insertBefore(getAccessDispatchMethodBody(patchClass, modifiedClass.getName()));
         controlClass.getDeclaredMethod("isSupport").insertBefore(getIsSupportMethodBody(patchClass, modifiedClass.getName()));
-        if (controlClass.isFrozen()) {
-            System.out.println("controlClass is frozen. className" + className);
-            controlClass.defrost();
-        }
+        // The check is moved above, so this block is no longer needed here.
+//        if (controlClass.isFrozen()) {
+//            System.out.println("controlClass is frozen. className" + className);
+//            controlClass.defrost();
+//        }
         return controlClass;
     }
 

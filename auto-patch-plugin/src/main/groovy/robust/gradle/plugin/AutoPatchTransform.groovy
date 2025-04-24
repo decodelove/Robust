@@ -11,6 +11,7 @@ import javassist.CtClass
 import javassist.CtMethod
 import javassist.expr.ExprEditor
 import javassist.expr.MethodCall
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
@@ -131,12 +132,8 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
         cost = (System.currentTimeMillis() - startTime) / 1000
         logger.quiet "autoPatch cost $cost second"
         logger.quiet "auto patch end successfully"
-        // 如果确实需要中断构建流程，可以使用以下方式
-        // project.gradle.buildFinished { result ->
-        //     if (result.failure == null) {
-        //         System.exit(0)
-        //     }
-        // }
+        // 中断构建流程
+        throw new GradleException("Robust patch generated successfully, stopping build.")
     }
 
     static def copyJarToRobust() {
@@ -381,6 +378,9 @@ class AutoPatchTransform extends Transform implements Plugin<Project> {
 
     def createControlClass(String patchPath, CtClass modifiedClass) {
         CtClass controlClass = PatchesControlFactory.createPatchesControl(modifiedClass);
+        if (controlClass.frozen) {
+            controlClass.defrost();
+        }
         controlClass.writeFile(patchPath);
         return controlClass;
     }
