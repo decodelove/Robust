@@ -1,4 +1,3 @@
-
 apply from: 'config.gradle'
 
 buildscript {
@@ -10,7 +9,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.0.2'
-        classpath 'robust.gradle.plugin:robust:1.0.6'
+        classpath 'robust.gradle.plugin:robust:3.0.6'
         classpath 'robust.gradle.plugin:auto-patch-plugin:1.1.8'
     }
 }
